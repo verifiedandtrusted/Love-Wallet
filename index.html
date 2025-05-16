@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Love Wallet</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif; /* */
+      background: linear-gradient(145deg, #0d0d1f, #1a0033, #330066); /* */
+      color: purple; /* */
+    }
+    header {
+      background: linear-gradient(90deg, #ff00cc, #3333ff); /* */
+      text-align: center; /* */
+      padding: 1.2rem; /* */
+      font-size: 2rem; /* */
+      font-weight: bold; /* */
+    }
+    .container {
+      max-width: 500px; /* */
+      margin: 2rem auto; /* */
+      background: rgba(255, 255, 255, 0.05); /* */
+      padding: 20px; /* */
+      border-radius: 15px; /* */
+    }
+    input {
+      width: 100%;
+      padding: 12px; /* */
+      margin: 10px 0; /* */
+      border-radius: 8px; /* */
+      border: none; /* */
+      background: rgba(255, 255, 255, 0.15); /* */
+      color: white; /* */
+      box-sizing: border-box; /* */
+    }
+    button {
+      width: 100%;
+      padding: 12px; /* */
+      background: linear-gradient(to right, #ff0066, #6600ff); /* */
+      border: none; /* */
+      color: white; /* */
+      font-size: 1rem; /* */
+      font-weight: bold; /* */
+      border-radius: 10px; /* */
+      cursor: pointer; /* */
+      margin-top: 5px; /* */
+    }
+    .button-secondary {
+      background: linear-gradient(to right, green, lime); /* */
+      margin-top: 10px; /* */
+    }
+    .section {
+      margin-top: 2rem; /* */
+    }
+    .transaction {
+      background: rgba(255,255,255,0.08); /* */
+      padding: 10px; /* */
+      margin-bottom: 10px; /* */
+      border-radius: 8px; /* */
+    }
+    .wallet-id { /* Retaining class name as per "Retain every other thing" - it's for styling */
+      background: #00000044; /* */
+      padding: 8px; /* */
+      border-radius: 6px; /* */
+      word-break: break-all; /* */
+    }
+    .glow-dot {
+      width: 14px; /* */
+      height: 14px; /* */
+      background: lime; /* */
+      border-radius: 50%; /* */
+      display: inline-block; /* */
+      animation: pulse 1s ease-in-out infinite alternate; /* */
+      margin-left: 10px; /* */
+    }
+    @keyframes pulse {
+      from { transform: scale(1); opacity: 0.6; } /* */
+      to { transform: scale(1.4); opacity: 1; } /* */
+    }
+    .toggle-btn {
+      background: transparent; /* */
+      color: #ddd; /* */
+      text-align: left; /* */
+      border: none; /* */
+      margin-bottom: 10px; /* */
+      cursor: pointer; /* */
+      padding: 0; /* */
+      font-size: 1em; /* */
+    }
+    .pin-section input[type="password"], .pin-section input[type="number"] {
+        -webkit-text-security: disc; /* */
+        text-security: disc; /* */
+    }
+    .error-message {
+        color: #ff6b6b; /* */
+        font-size: 0.9em; /* */
+        margin-bottom: 12px; /* */
+    }
+  </style>
+</head>
+<body>
+<header>Love Wallet</header>
+<div class="container">
+  <h2>Wallet Address</h2>
+  <div id="walletAddress" class="wallet-id">Loading...</div>
+
+  <div class="section">
+    <h2>Balance: <span id="balance">0</span> ❤ Love
+      <button onclick="refreshBalance()" class="button-secondary" style="width: auto; padding: 8px 15px; font-size: 0.8rem; margin-left: 10px;">Refresh</button>
+    </h2>
+  </div>
+
+  <div class="section">
+    <h2>Send Love</h2>
+    <input type="text" id="toAddress" placeholder="Receiver Wallet Address"/>
+    <input type="number" id="amount" placeholder="Amount to send"/>
+    <input type="password" id="transferPin" placeholder="Enter 4-Digit PIN for Transfer" maxlength="4" inputmode="numeric" pattern="\d{4}"/>
+    <button onclick="sendLove()">Send Instantly</button>
+    <div id="transferError" class="error-message"></div>
+    <p style="font-size: 0.9em; color: #ccc">Note: 5% fee applies per transaction</p>
+  </div>
+
+  <div class="section">
+    <h2>
+      Transaction History
+      <span id="glow" class="glow-dot" style="display:none;"></span> </h2>
+    <button class="toggle-btn" onclick="toggleHistory()">Show/Hide History</button>
+    <div id="history" style="display:none;"></div>
+  </div>
+
+  <div class="section pin-section">
+    <h2>PIN Management</h2>
+    <div id="pinStatus" style="margin-bottom: 10px;"></div>
+
+    <div id="pinSetupArea">
+        <h3>Set Up PIN</h3>
+        <input type="password" id="newPin" placeholder="Enter New 4-Digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}"/>
+        <input type="password" id="confirmNewPin" placeholder="Confirm New 4-Digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}"/> <button onclick="setPin()">Set PIN</button>
+        <div id="pinSetupError" class="error-message"></div>
+    </div>
+
+    <div id="pinDisplayArea" style="display:none;">
+        <button id="toggleChangePinBtn" onclick="toggleChangePinVisibility()" style="width:auto; padding: 10px 15px; margin-bottom:10px;">Change PIN</button>
+        <div id="pinChangeArea" style="display:none; margin-top:10px; border: 1px solid rgba(255,255,255,0.1); padding:15px; border-radius:8px;">
+            <h3>Change PIN Details</h3>
+            <input type="password" id="currentPin" placeholder="Current 4-Digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}"/>
+            <input type="password" id="changeNewPin" placeholder="Enter New 4-Digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}"/>
+            <input type="password" id="confirmChangeNewPin" placeholder="Confirm New 4-Digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}"/>
+            <button onclick="changePin()">Submit Change PIN</button> <div id="pinChangeError" class="error-message"></div>
+        </div>
+        <button class="toggle-btn" onclick="showPinSetup()" style="margin-top:15px; width:100%;">Forgot PIN? Reset (requires app reset)</button> </div>
+  </div>
+</div> <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCu0xpn7aLp3Z-4X6JZX2658f9oGLL1t5E",
+  authDomain: "loverschat-6188e.firebaseapp.com",
+  databaseURL: "https://loverschat-6188e-default-rtdb.firebaseio.com",
+  projectId: "loverschat-6188e",
+  storageBucket: "loverschat-6188e.appspot.com",
+  messagingSenderId: "711846112707",
+  appId: "1:711846112707:web:84f1499219e3c1a21ae176"
+}; /* */
+firebase.initializeApp(firebaseConfig); /* */
+const db = firebase.database(); /* */
+
+let userAddress = localStorage.getItem("loveWalletUAddress") || `love_${Date.now()}`; /* */
+localStorage.setItem("loveWalletUAddress", userAddress); /* */
+document.getElementById("walletAddress").innerText = userAddress; /* */
+
+const balanceSpan = document.getElementById("balance"); /* */
+const historyDiv = document.getElementById("history"); /* */
+const glow = document.getElementById("glow"); /* */
+let currentBalance = 0; /* */
+let userPin = localStorage.getItem("loveWalletPIN"); /* */
+
+// DOM Elements for PIN
+const pinSetupArea = document.getElementById("pinSetupArea"); /* */
+const pinDisplayArea = document.getElementById("pinDisplayArea"); // New
+const pinChangeArea = document.getElementById("pinChangeArea"); /* */
+const pinStatusDiv = document.getElementById("pinStatus"); /* */
+const newPinInput = document.getElementById("newPin"); /* */
+const confirmNewPinInput = document.getElementById("confirmNewPin"); /* */
+const currentPinInput = document.getElementById("currentPin"); /* */
+const changeNewPinInput = document.getElementById("changeNewPin"); /* */
+const confirmChangeNewPinInput = document.getElementById("confirmChangeNewPin"); /* */
+const pinSetupErrorDiv = document.getElementById("pinSetupError"); /* */
+const pinChangeErrorDiv = document.getElementById("pinChangeError"); /* */
+const transferErrorDiv = document.getElementById("transferError"); /* */
+const transferPinInput = document.getElementById("transferPin"); /* */
+const toggleChangePinBtn = document.getElementById("toggleChangePinBtn"); //New
+
+function displayPinUI() { /* */
+    if (userPin) {
+        pinSetupArea.style.display = "none"; /* */
+        pinDisplayArea.style.display = "block";
+        pinChangeArea.style.display = "none"; // Keep this hidden initially
+        toggleChangePinBtn.innerText = "Show Change PIN Options";
+        pinStatusDiv.innerText = "PIN is set."; /* */
+    } else {
+        pinSetupArea.style.display = "block"; /* */
+        pinDisplayArea.style.display = "none";
+        pinStatusDiv.innerText = "PIN not set. Please set up a PIN for transfers."; /* */
+    }
+}
+
+function toggleChangePinVisibility() {
+    if (pinChangeArea.style.display === "none") {
+        pinChangeArea.style.display = "block";
+        toggleChangePinBtn.innerText = "Hide Change PIN Options";
+    } else {
+        pinChangeArea.style.display = "none";
+        toggleChangePinBtn.innerText = "Show Change PIN Options";
+    }
+}
+
+function setPin() { /* */
+    pinSetupErrorDiv.innerText = ""; /* */
+    const newPin = newPinInput.value; /* */
+    const confirmNewPin = confirmNewPinInput.value; /* */
+    if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) { /* */
+        pinSetupErrorDiv.innerText = "PIN must be 4 digits."; /* */
+        return; /* */
+    }
+    if (newPin !== confirmNewPin) { /* */
+        pinSetupErrorDiv.innerText = "PINs do not match."; /* */
+        return; /* */
+    }
+    localStorage.setItem("loveWalletPIN", newPin); /* */
+    userPin = newPin; /* */
+    alert("PIN set successfully!"); /* */
+    newPinInput.value = ""; /* */
+    confirmNewPinInput.value = ""; /* */
+    displayPinUI(); /* */
+}
+
+function changePin() { /* */
+    pinChangeErrorDiv.innerText = ""; /* */
+    const currentPin = currentPinInput.value; /* */
+    const newPin = changeNewPinInput.value; /* */
+    const confirmNewPin = confirmChangeNewPinInput.value; /* */
+
+    if (currentPin !== userPin) { /* */
+        pinChangeErrorDiv.innerText = "Current PIN is incorrect."; /* */
+        return; /* */
+    }
+    if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) { /* */
+        pinChangeErrorDiv.innerText = "New PIN must be 4 digits."; /* */
+        return; /* */
+    }
+    if (newPin !== confirmNewPin) { /* */
+        pinChangeErrorDiv.innerText = "New PINs do not match."; /* */
+        return; /* */
+    }
+    localStorage.setItem("loveWalletPIN", newPin); /* */
+    userPin = newPin; /* */
+    alert("PIN changed successfully!"); /* */
+    currentPinInput.value = ""; /* */
+    changeNewPinInput.value = ""; /* */
+    confirmChangeNewPinInput.value = ""; /* */
+    pinChangeArea.style.display = "none"; // Hide after successful change
+    toggleChangePinBtn.innerText = "Show Change PIN Options";
+    displayPinUI(); // Refresh overall PIN UI state
+}
+
+function showPinSetup() { /* */
+    if (confirm("Resetting PIN will clear your current PIN. Are you sure? This action is like resetting the app's PIN data.")) { /* */
+        localStorage.removeItem("loveWalletPIN"); /* */
+        userPin = null; /* */
+        alert("PIN has been cleared. Please set a new PIN."); /* */
+        displayPinUI(); /* */
+    }
+}
+
+function loadWalletData() { /* */
+  db.ref("wallets/" + userAddress).once("value").then(snapshot => {
+    const data = snapshot.val() || { balance: 0, history: [] }; /* */
+    currentBalance = data.balance; /* */
+    balanceSpan.innerText = currentBalance.toFixed(2); /* */
+    displayHistory(data.history || []);
+  }).catch(error => { /* */
+    console.error("Error loading wallet data:", error); /* */
+    balanceSpan.innerText = "Error"; /* */
+  });
+}
+
+function refreshBalance() { /* */
+  balanceSpan.innerText = "Refreshing..."; /* */
+  loadWalletData(); /* */
+}
+
+// Initial load
+loadWalletData(); /* */
+displayPinUI(); /* */
+
+function updateWallet(address, balance, history) { /* */
+  db.ref("wallets/" + address).set({ balance, history }); /* */
+}
+
+function sendLove() { /* */
+  transferErrorDiv.innerText = ""; /* */
+  const toAddressValue = document.getElementById("toAddress").value.trim(); /* */
+  const amt = parseFloat(document.getElementById("amount").value); /* */
+  const enteredPin = transferPinInput.value; /* */
+  if (!userPin) { /* */
+    transferErrorDiv.innerText = "Please set up a PIN before making transfers."; /* */
+    return; /* */
+  }
+  if (enteredPin !== userPin) { /* */
+    transferErrorDiv.innerText = "Incorrect PIN for transfer."; /* */
+    return; /* */
+  }
+
+  if (!toAddressValue || isNaN(amt) || amt <= 0) { /* */
+    transferErrorDiv.innerText = "Invalid receiver address or amount."; /* */
+    return; /* */
+  }
+   if (toAddressValue === userAddress) { /* */
+    transferErrorDiv.innerText = "Cannot send love to yourself."; /* */
+    return; /* */
+  }
+
+  const fee = parseFloat((amt * 0.05).toFixed(2)); /* */
+  const total = amt + fee; /* */
+
+  if (currentBalance < total) { /* */
+    transferErrorDiv.innerText = "Insufficient balance (5% fee included)."; /* */
+    return; /* */
+  }
+
+  currentBalance -= total; /* */
+  balanceSpan.innerText = currentBalance.toFixed(2); /* */
+  const myTx = { type: "Debit", to: toAddressValue, amount: amt, fee, date: new Date().toLocaleString() }; /* */
+
+  db.ref("wallets/" + userAddress + "/history").once("value", snap => { /* */
+    const h = snap.val() || []; /* */
+    h.unshift(myTx); /* */
+    updateWallet(userAddress, currentBalance, h); /* */
+    displayHistory(h); /* */
+  });
+  db.ref("wallets/" + toAddressValue).once("value").then(snap => { /* */
+    const wallet = snap.val() || { balance: 0, history: [] }; /* */
+    const newBal = wallet.balance + amt; /* */
+    const tx = { type: "Credit", from: userAddress, amount: amt, date: new Date().toLocaleString() }; /* */
+    const recipientHistory = wallet.history || []; /* */
+    recipientHistory.unshift(tx); /* */
+    updateWallet(toAddressValue, newBal, recipientHistory); /* */
+
+    db.ref("wallets/" + toAddressValue + "/glow").set(true); /* */
+    db.ref("messages/" + toAddressValue + "/" + userAddress + "_walletalert").push({ /* */
+      sender: "System-" + userAddress.substring(0,5), /* */
+      text: `You received ${amt.toFixed(2)} ❤ from a Love Wallet user.`, /* */
+      timestamp: Date.now() /* */
+    });
+    db.ref("messages/" + userAddress + "/" + toAddressValue + "_walletalert").push({ /* */
+      sender: "System", /* */
+      text: `You sent ${amt.toFixed(2)} ❤ to ${toAddressValue} (Fee: ${fee.toFixed(2)} ❤)`, /* */
+      timestamp: Date.now() /* */
+    });
+  }).catch(error => { /* */
+      console.error("Error accessing recipient wallet:", error); /* */
+      transferErrorDiv.innerText = "Error processing transaction with recipient. Please try again."; /* */
+      currentBalance += total; /* */
+      balanceSpan.innerText = currentBalance.toFixed(2); /* */
+  });
+  alert("Transfer complete!"); /* */
+  document.getElementById("toAddress").value = ""; /* */
+  document.getElementById("amount").value = ""; /* */
+  transferPinInput.value = ""; /* */
+}
+
+function toggleHistory() { /* */
+  const h = document.getElementById("history"); /* */
+  h.style.display = h.style.display === "none" ? "block" : "none"; /* */
+}
+
+function displayHistory(list) { /* */
+  historyDiv.innerHTML = ""; /* */
+  if (Array.isArray(list)) { /* */
+    list.forEach(tx => {
+      const div = document.createElement("div"); /* */
+      div.className = "transaction"; /* */
+      div.innerText = `${tx.type === "Credit" ? "Received" : "Sent"} ${tx.amount.toFixed(2)} ❤ ${tx.to ? "to " + tx.to : "from " + tx.from} (${tx.date})${tx.fee ? " [Fee: " + tx.fee.toFixed(2) + "]" : ""}`; /* */
+      historyDiv.appendChild(div); /* */
+    });
+  } else { /* */
+      historyDiv.innerText = "No transactions yet."; /* */
+  }
+}
+
+db.ref("wallets/" + userAddress + "/glow").on("value", snap => { /* */
+  if (snap.exists() && snap.val() === true) { /* */
+    glow.style.display = "inline-block"; /* */
+  } else { /* */
+    glow.style.display = "none"; /* */
+  }
+});
+historyDiv.addEventListener('click', () => { /* */
+    if (glow.style.display === "inline-block") { /* */
+        db.ref("wallets/" + userAddress + "/glow").remove(); /* */
+    }
+});
+document.querySelector('button[onclick="refreshBalance()"]').addEventListener('click', () => { /* */
+    if (glow.style.display === "inline-block") { /* */
+        db.ref("wallets/" + userAddress + "/glow").remove(); /* */
+    }
+});
+</script>
+</body>
+</html>
